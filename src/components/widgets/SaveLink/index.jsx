@@ -120,13 +120,8 @@ function addHistory(item) {
   return h
 }
 
-// ── Icons for file types ───────────────────────────────────────────────────
-
-function ItemIcon({ type, name }) {
-  if (type === 'url') return <Link size={12} />
-  const ext = name?.split('.').pop()?.toLowerCase()
-  return <File size={12} />
-}
+// Honeycomb SVG pattern (faint net)
+const HONEYCOMB_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49'%3E%3Cpath d='M14 0l14 8.66v16.17L14 33.5 0 24.83V8.66z' fill='none' stroke='%23000' stroke-opacity='.06' stroke-width='.5'/%3E%3Cpath d='M14 16.5l14 8.66v16.17L14 50 0 41.33V25.16z' fill='none' stroke='%23000' stroke-opacity='.06' stroke-width='.5'/%3E%3C/svg%3E")`
 
 // ── Widget ─────────────────────────────────────────────────────────────────
 
@@ -204,28 +199,28 @@ export default function SaveLink() {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
     >
-      {/* Drop zone / input */}
+      {/* Honeycomb drop zone — fills available space */}
       <div
-        className="shrink-0 mx-3 mt-3 rounded-xl flex flex-col items-center justify-center gap-2 px-4 py-4 transition-all"
+        className="flex-1 mx-2.5 mt-2 rounded-xl flex flex-col items-center justify-center gap-2 px-3 transition-all min-h-0 relative overflow-hidden"
         style={{
           border: `1.5px dashed ${dragging ? `rgb(var(--color-accent))` : 'var(--theme-card-border)'}`,
           background: dragging ? `rgba(var(--color-accent) / 0.06)` : 'transparent',
-          minHeight: 72,
+          backgroundImage: dragging ? 'none' : HONEYCOMB_SVG,
         }}
       >
         {state === 'saving' ? (
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `rgb(var(--color-accent))`, borderTopColor: 'transparent' }} />
+            <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: `rgb(var(--color-accent))`, borderTopColor: 'transparent' }} />
             <span className="text-xs" style={{ color: 'var(--theme-text-2)' }}>Saving to Drive…</span>
           </div>
         ) : state === 'saved' ? (
           <div className="flex items-center gap-2">
-            <Check size={16} className="text-green-400" />
+            <Check size={14} className="text-green-400" />
             <span className="text-xs" style={{ color: 'var(--theme-text-2)' }}>Saved to Drive</span>
           </div>
         ) : state === 'error' ? (
           <div className="flex items-center gap-2">
-            <AlertCircle size={16} className="text-red-400" />
+            <AlertCircle size={14} className="text-red-400" />
             <span className="text-xs text-red-400">Save failed</span>
           </div>
         ) : (
@@ -245,56 +240,57 @@ export default function SaveLink() {
         )}
       </div>
 
-      {/* URL input */}
-      <form onSubmit={handleSubmit} className="flex gap-1.5 px-3 mt-2 shrink-0">
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Paste a URL…"
-          className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none min-w-0"
-          style={{ background: 'rgba(var(--color-border) / 0.2)', color: 'var(--theme-text-1)', border: '0.5px solid var(--theme-card-border)' }}
-          disabled={state === 'saving'}
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || state === 'saving'}
-          className="shrink-0 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80 disabled:opacity-40"
-          style={{ background: `rgba(var(--color-accent) / 0.15)`, color: `rgb(var(--color-accent))` }}
-        >
-          Save
-        </button>
-      </form>
-
-      {/* Recent items */}
-      <div className="flex-1 overflow-y-auto mt-2 min-h-0">
-        {history.map((item) => (
-          <a
-            key={item.id}
-            href={item.url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 hover:opacity-70 transition-opacity"
+      {/* URL input + Drive link row */}
+      <div className="shrink-0 px-2.5 py-2 flex flex-col gap-1.5">
+        <form onSubmit={handleSubmit} className="flex gap-1.5">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Paste a URL…"
+            className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none min-w-0"
+            style={{ background: 'rgba(var(--color-border) / 0.2)', color: 'var(--theme-text-1)', border: '0.5px solid var(--theme-card-border)' }}
+            disabled={state === 'saving'}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || state === 'saving'}
+            className="shrink-0 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80 disabled:opacity-40"
+            style={{ background: `rgba(var(--color-accent) / 0.15)`, color: `rgb(var(--color-accent))` }}
           >
-            <span style={{ color: 'var(--theme-text-3)', flexShrink: 0 }}>
-              <ItemIcon type={item.type} name={item.name} />
-            </span>
-            <span className="text-xs flex-1 truncate" style={{ color: 'var(--theme-text-2)' }}>{item.name}</span>
-            <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-text-3)' }}>
-              {formatDistanceToNow(new Date(item.savedAt), { addSuffix: true })}
-            </span>
-          </a>
-        ))}
-      </div>
+            Save
+          </button>
+        </form>
 
-      {/* Open folder */}
-      <button
-        onClick={openFolder}
-        className="shrink-0 flex items-center justify-center gap-1.5 py-2 text-[11px] hover:opacity-60 transition-opacity"
-        style={{ borderTop: '0.5px solid var(--theme-card-border)', color: 'var(--theme-text-3)' }}
-      >
-        <FolderOpen size={12} />
-        Open Drive folder
-      </button>
+        {/* Recent items — compact, only if there are any */}
+        {history.length > 0 && (
+          <div className="flex flex-col">
+            {history.slice(0, 3).map((item) => (
+              <a
+                key={item.id}
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 py-1 hover:opacity-70 transition-opacity"
+              >
+                <span style={{ color: 'var(--theme-text-3)', flexShrink: 0 }}>
+                  {item.type === 'url' ? <Link size={10} /> : <File size={10} />}
+                </span>
+                <span className="text-[11px] flex-1 truncate" style={{ color: 'var(--theme-text-2)' }}>{item.name}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Open Drive — inline link */}
+        <button
+          onClick={openFolder}
+          className="flex items-center gap-1 text-[10px] hover:opacity-60 transition-opacity self-start"
+          style={{ color: 'var(--theme-text-3)' }}
+        >
+          <FolderOpen size={10} />
+          Open Drive folder
+        </button>
+      </div>
     </div>
   )
 }

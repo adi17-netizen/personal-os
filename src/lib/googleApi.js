@@ -27,8 +27,12 @@ export async function fetchGoogle(url, options = {}) {
   }
 
   if (!res.ok) {
+    let body = ''
+    try { body = await res.text() } catch {}
+    console.error(`[fetchGoogle] ${res.status} ${url}`, body)
     const err = new Error(`Google API error ${res.status}`)
     err.status = res.status
+    err.body = body
     throw err
   }
 

@@ -1,6 +1,6 @@
 import { GripVertical } from 'lucide-react'
 
-export default function WidgetShell({ children, title, icon: Icon }) {
+export default function WidgetShell({ children, title, icon: Icon, headerAction }) {
   return (
     <div className="widget-card">
       <div
@@ -27,6 +27,7 @@ export default function WidgetShell({ children, title, icon: Icon }) {
             {title}
           </span>
         )}
+        {headerAction && <div className="ml-auto shrink-0">{headerAction}</div>}
       </div>
       <div className="flex-1 overflow-auto min-h-0">
         {children}

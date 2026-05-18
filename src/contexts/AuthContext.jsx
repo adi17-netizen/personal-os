@@ -46,6 +46,18 @@ export function AuthProvider({ children }) {
     const credential = GoogleAuthProvider.credentialFromResult(result)
     if (credential?.accessToken) {
       tokenStore.set(credential.accessToken)
+
+      // Debug: log granted scopes
+      fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${credential.accessToken}`)
+        .then(r => r.json())
+        .then(info => {
+          console.log('[Auth] Token info:', info)
+          console.log('[Auth] Granted scopes:', info.scope)
+          console.log('[Auth] Expires in:', info.expires_in, 'seconds')
+        })
+        .catch(e => console.warn('[Auth] Could not fetch token info:', e))
+    } else {
+      console.warn('[Auth] No accessToken in credential!', credential)
     }
     setNeedsReconnect(false)
     return result.user
