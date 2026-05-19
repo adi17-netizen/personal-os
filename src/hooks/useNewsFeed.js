@@ -9,22 +9,47 @@ const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
 const MAX_TOPICS = 7
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
 
-async function fetchTopic(topic) {
-  // allorigins with disableCache=true fetches fresh from Google News every time
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
+async function fetchTopicViaProxy(rssUrl) {
   const proxyUrl = `https://allorigins.win/get?disableCache=true&url=${encodeURIComponent(rssUrl)}`
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) })
-  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`)
+  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`proxy ${res.status}`)
   const json = await res.json()
+  if (!json.contents) throw new Error('empty proxy response')
   const xml = new DOMParser().parseFromString(json.contents, 'text/xml')
   const items = [...xml.querySelectorAll('item')]
+  if (!items.length) throw new Error('no items in feed')
   return items.slice(0, 10).map(item => ({
     title: item.querySelector('title')?.textContent ?? '',
-    link: item.querySelector('link')?.nextSibling?.textContent ?? item.querySelector('link')?.textContent ?? '',
+    link: item.querySelector('link')?.textContent ?? '',
     pubDate: item.querySelector('pubDate')?.textContent ?? '',
     source: item.querySelector('source')?.textContent ?? '',
-    topic,
   }))
+}
+
+async function fetchTopicViaRss2json(rssUrl) {
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`
+  const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`rss2json ${res.status}`)
+  const data = await res.json()
+  if (data.status !== 'ok') throw new Error(data.message || 'rss2json error')
+  return data.items.map(item => ({
+    title: item.title ?? '',
+    link: item.link ?? '',
+    pubDate: item.pubDate ?? '',
+    source: item.author ?? '',
+  }))
+}
+
+async function fetchTopic(topic) {
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
+  // Try allorigins first (fresh data), fall back to rss2json if it's down
+  try {
+    const items = await fetchTopicViaProxy(rssUrl)
+    return items.map(i => ({ ...i, topic }))
+  } catch {
+    const items = await fetchTopicViaRss2json(rssUrl)
+    return items.map(i => ({ ...i, topic }))
+  }
 }
 
 export function useNewsFeed() {
