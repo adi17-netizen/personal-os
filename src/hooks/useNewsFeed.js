@@ -5,24 +5,24 @@ import { useAuth } from '../contexts/AuthContext'
 
 const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const LS_KEY = 'personal-os-topics'
-const LS_X_KEY = 'personal-os-xhandle'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
-const DEFAULT_X_HANDLE = 'elonmusk'
 const MAX_TOPICS = 7
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
 
 async function fetchTopic(topic) {
+  // allorigins with disableCache=true fetches fresh from Google News every time
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`
-  const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
+  const proxyUrl = `https://allorigins.win/get?disableCache=true&url=${encodeURIComponent(rssUrl)}`
+  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) })
   if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`)
-  const data = await res.json()
-  if (data.status !== 'ok') throw new Error(data.message || 'RSS error')
-  return data.items.map(item => ({
-    title: item.title ?? '',
-    link: item.link ?? '',
-    pubDate: item.pubDate ?? '',
-    source: item.author ?? '',
+  const json = await res.json()
+  const xml = new DOMParser().parseFromString(json.contents, 'text/xml')
+  const items = [...xml.querySelectorAll('item')]
+  return items.slice(0, 10).map(item => ({
+    title: item.querySelector('title')?.textContent ?? '',
+    link: item.querySelector('link')?.nextSibling?.textContent ?? item.querySelector('link')?.textContent ?? '',
+    pubDate: item.querySelector('pubDate')?.textContent ?? '',
+    source: item.querySelector('source')?.textContent ?? '',
     topic,
   }))
 }
@@ -36,7 +36,6 @@ export function useNewsFeed() {
     }
     return DEFAULT_TOPICS
   })
-  const [xHandle, setXHandle] = useState(() => localStorage.getItem(LS_X_KEY) || DEFAULT_X_HANDLE)
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState(null)
   const [lastRefreshed, setLastRefreshed] = useState(null)
@@ -69,7 +68,6 @@ export function useNewsFeed() {
       const data = snap.data() || {}
       const t = data.newsTopics?.length ? data.newsTopics : DEFAULT_TOPICS
       setTopics(t)
-      if (data.xHandle) setXHandle(data.xHandle)
       load(t)
     }).catch(() => load(DEFAULT_TOPICS))
   }, [user, load])
@@ -91,15 +89,5 @@ export function useNewsFeed() {
     load(capped)
   }, [user, load])
 
-  const updateXHandle = useCallback(async (newHandle) => {
-    const clean = newHandle.replace(/^@/, '').trim()
-    if (!clean) return
-    setXHandle(clean)
-    localStorage.setItem(LS_X_KEY, clean)
-    if (!MOCK && user) {
-      await setDoc(doc(db, 'userPrefs', user.uid), { xHandle: clean }, { merge: true })
-    }
-  }, [user])
-
-  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed, xHandle, updateXHandle }
+  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed }
 }

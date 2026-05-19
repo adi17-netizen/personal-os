@@ -5,7 +5,7 @@ import { useNewsFeed } from '../../../hooks/useNewsFeed'
 import SkeletonList from '../../layout/SkeletonList'
 import ErrorState from '../../layout/ErrorState'
 import EmptyState from '../../layout/EmptyState'
-import XTimeline from './XTimeline'
+import TrendingTopics from './TrendingTopics'
 
 function timeAgo(dateStr) {
   try {
@@ -30,21 +30,16 @@ function parseArticle(article) {
 }
 
 export default function NewsFeed() {
-  const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS, xHandle, updateXHandle } = useNewsFeed()
+  const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS } = useNewsFeed()
   const [spinning, setSpinning] = useState(false)
-  const [tab, setTab] = useState('news') // 'news' | 'x'
+  const [tab, setTab] = useState('news') // 'news' | 'trending'
   const [editingTopics, setEditingTopics] = useState(false)
   const [newTopic, setNewTopic] = useState('')
-  const [xInput, setXInput] = useState(xHandle || '')
 
   const handleRefresh = () => {
     setSpinning(true)
     retry()
     setTimeout(() => setSpinning(false), 800)
-  }
-
-  const handleXSave = () => {
-    if (xInput.trim()) updateXHandle(xInput.trim())
   }
 
   const addTopic = () => {
@@ -74,15 +69,14 @@ export default function NewsFeed() {
             News
           </button>
           <button
-            onClick={() => setTab('x')}
-            className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity flex items-center gap-1"
+            onClick={() => setTab('trending')}
+            className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity"
             style={{
-              color: tab === 'x' ? `rgb(var(--color-accent))` : 'var(--theme-text-3)',
-              background: tab === 'x' ? `rgb(var(--color-accent) / 0.1)` : 'transparent',
+              color: tab === 'trending' ? `rgb(var(--color-accent))` : 'var(--theme-text-3)',
+              background: tab === 'trending' ? `rgb(var(--color-accent) / 0.1)` : 'transparent',
             }}
           >
-            <span className="font-bold">𝕏</span>
-            {xHandle && <span className="opacity-70">@{xHandle}</span>}
+            Trending
           </button>
         </div>
         <div className="flex items-center gap-1.5 ml-2 shrink-0">
@@ -155,30 +149,13 @@ export default function NewsFeed() {
             {topics.length}/{MAX_TOPICS} topics · Refreshes every 15 min
           </p>
 
-          {/* X handle */}
-          <div className="mt-3 pt-3" style={{ borderTop: '0.5px solid var(--theme-card-border)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--theme-text-3)' }}>
-              X timeline
-            </p>
-            <div className="flex gap-2">
-              <input
-                value={xInput}
-                onChange={e => setXInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleXSave()}
-                onBlur={handleXSave}
-                placeholder="X handle (without @)"
-                className="flex-1 rounded px-2 py-1 text-xs outline-none"
-                style={{ background: 'rgba(var(--color-border) / 0.3)', color: 'var(--theme-text-1)' }}
-              />
-            </div>
-          </div>
         </div>
       )}
 
-      {/* X timeline */}
-      {tab === 'x' && (
+      {/* Trending */}
+      {tab === 'trending' && (
         <div className="flex-1 overflow-auto min-h-0">
-          <XTimeline handle={xHandle} />
+          <TrendingTopics />
         </div>
       )}
 
@@ -235,15 +212,15 @@ export default function NewsFeed() {
             Open in Google News <ExternalLink size={10} />
           </a>
         )}
-        {tab === 'x' && xHandle && (
+        {tab === 'trending' && (
           <a
-            href={`https://x.com/${xHandle}`}
+            href="https://trends.google.com/trending?geo=IN"
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-1 text-[11px] font-medium py-1 rounded-md hover:opacity-70 transition-opacity"
             style={{ color: `rgb(var(--color-accent))` }}
           >
-            Open on X <ExternalLink size={10} />
+            Open Google Trends <ExternalLink size={10} />
           </a>
         )}
       </div>
