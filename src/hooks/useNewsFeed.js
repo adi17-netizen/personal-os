@@ -5,86 +5,104 @@ import { useAuth } from '../contexts/AuthContext'
 
 const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const LS_KEY = 'personal-os-topics'
+const LS_ARTICLES_KEY = 'personal-os-articles'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
 const MAX_TOPICS = 7
+const MAX_ARTICLES = 40
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
 
-async function fetchTopicViaProxy(rssUrl) {
-  const proxyUrl = `https://allorigins.win/get?disableCache=true&url=${encodeURIComponent(rssUrl)}`
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
-  if (!res.ok) throw new Error(`proxy ${res.status}`)
-  const json = await res.json()
-  if (!json.contents) throw new Error('empty proxy response')
-  const xml = new DOMParser().parseFromString(json.contents, 'text/xml')
-  const items = [...xml.querySelectorAll('item')]
-  if (!items.length) throw new Error('no items in feed')
-  return items.slice(0, 10).map(item => ({
-    title: item.querySelector('title')?.textContent ?? '',
-    link: item.querySelector('link')?.textContent ?? '',
-    pubDate: item.querySelector('pubDate')?.textContent ?? '',
-    source: item.querySelector('source')?.textContent ?? '',
-  }))
+function getCachedArticles() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_ARTICLES_KEY)) || []
+  } catch { return [] }
 }
 
-async function fetchTopicViaRss2json(rssUrl) {
+function setCachedArticles(articles) {
+  try { localStorage.setItem(LS_ARTICLES_KEY, JSON.stringify(articles)) } catch {}
+}
+
+async function fetchTopic(topic) {
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`
   const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
-  if (!res.ok) throw new Error(`rss2json ${res.status}`)
+  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`)
   const data = await res.json()
-  if (data.status !== 'ok') throw new Error(data.message || 'rss2json error')
+  if (data.status !== 'ok') throw new Error(data.message || 'RSS error')
   return data.items.map(item => ({
     title: item.title ?? '',
     link: item.link ?? '',
     pubDate: item.pubDate ?? '',
     source: item.author ?? '',
+    topic,
   }))
 }
 
-async function fetchTopic(topic) {
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
-  // Try allorigins first (fresh data), fall back to rss2json if it's down
-  try {
-    const items = await fetchTopicViaProxy(rssUrl)
-    return items.map(i => ({ ...i, topic }))
-  } catch {
-    const items = await fetchTopicViaRss2json(rssUrl)
-    return items.map(i => ({ ...i, topic }))
+// Merge new articles into existing, deduplicate by link, sort newest first, cap at MAX
+function mergeArticles(existing, fresh) {
+  const seen = new Set()
+  const merged = []
+  // Fresh first so they take priority in dedup
+  for (const a of [...fresh, ...existing]) {
+    const key = a.link || a.title
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    merged.push(a)
   }
+  merged.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+  return merged.slice(0, MAX_ARTICLES)
 }
 
 export function useNewsFeed() {
   const { user } = useAuth()
-  const [articles, setArticles] = useState([])
+  const [articles, setArticles] = useState(() => getCachedArticles())
   const [topics, setTopics] = useState(() => {
     if (MOCK) {
       try { return JSON.parse(localStorage.getItem(LS_KEY)) || DEFAULT_TOPICS } catch { return DEFAULT_TOPICS }
     }
     return DEFAULT_TOPICS
   })
-  const [status, setStatus] = useState('loading')
+  const [status, setStatus] = useState(() => getCachedArticles().length ? 'success' : 'loading')
   const [error, setError] = useState(null)
   const [lastRefreshed, setLastRefreshed] = useState(null)
   const intervalRef = useRef(null)
 
   const load = useCallback(async (currentTopics) => {
-    setStatus(prev => prev === 'success' ? 'success' : 'loading') // don't flash loading on refresh
+    setStatus(prev => prev === 'success' ? 'success' : 'loading')
     setError(null)
     try {
       const results = await Promise.allSettled(currentTopics.map(fetchTopic))
-      const all = results
+      const fresh = results
         .filter(r => r.status === 'fulfilled')
         .flatMap(r => r.value)
-        .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-        .slice(0, 30)
 
-      if (all.length === 0) { setStatus('empty') }
-      else { setArticles(all); setStatus('success'); setLastRefreshed(new Date()) }
+      if (fresh.length === 0) {
+        // Fetch failed but we have cached articles — keep showing them
+        setArticles(prev => {
+          if (prev.length > 0) { setStatus('success'); return prev }
+          setStatus('empty')
+          return prev
+        })
+        return
+      }
+
+      setArticles(prev => {
+        const merged = mergeArticles(prev, fresh)
+        setCachedArticles(merged)
+        return merged
+      })
+      setStatus('success')
+      setLastRefreshed(new Date())
     } catch (e) {
-      setError(e.message); setStatus('error')
+      // On error, keep existing articles visible
+      setArticles(prev => {
+        if (prev.length > 0) { setStatus('success'); return prev }
+        setError(e.message); setStatus('error')
+        return prev
+      })
     }
   }, [])
 
-  // Load topics + X handle from Firestore then fetch articles
+  // Load topics from Firestore then fetch articles
   useEffect(() => {
     if (MOCK) { load(topics); return }
     if (!user) return
@@ -106,6 +124,8 @@ export function useNewsFeed() {
   const updateTopics = useCallback(async (newTopics) => {
     const capped = newTopics.slice(0, MAX_TOPICS)
     setTopics(capped)
+    // Clear cache when topics change — old articles may be irrelevant
+    setCachedArticles([])
     if (MOCK) {
       localStorage.setItem(LS_KEY, JSON.stringify(capped))
     } else if (user) {
