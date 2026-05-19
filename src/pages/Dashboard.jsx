@@ -29,10 +29,11 @@ import Notes        from '../components/widgets/Notes'
 import QuickLinks   from '../components/widgets/QuickLinks'
 import SaveLink     from '../components/widgets/SaveLink'
 import NewsFeed     from '../components/widgets/NewsFeed'
+import Gmail        from '../components/widgets/Gmail'
 
 import {
   Clock, Sun, CalendarDays, CheckSquare,
-  StickyNote, Link2, Bookmark, Newspaper,
+  StickyNote, Link2, Bookmark, Newspaper, Mail,
 } from 'lucide-react'
 
 const WIDGET_CONFIG = {
@@ -44,6 +45,7 @@ const WIDGET_CONFIG = {
   'quick-links':   { title: 'Quick Links',      icon: Link2,        Component: QuickLinks },
   'save-link':     { title: 'Save Link',        icon: Bookmark,     Component: SaveLink },
   'news-feed':     { title: 'News Feed',        icon: Newspaper,    Component: NewsFeed },
+  'gmail':         { title: 'Gmail',            icon: Mail,         Component: Gmail },
 }
 
 // ── Grid sizing ────────────────────────────────────────────────────────────
