@@ -4,7 +4,6 @@ import { db } from '../../../config/firebase'
 import { useAuth } from '../../../contexts/AuthContext'
 import { tokenStore } from '../../../lib/tokenStore'
 import { Link, File, FolderOpen, Check, AlertCircle, Upload } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 
 const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const LS_KEY_FOLDER  = 'personal-os-drive-folder'
@@ -77,7 +76,6 @@ async function uploadFileToDrive(folderId, file) {
   const token = tokenStore.get()
   const metadata = { name: file.name, parents: [folderId] }
 
-  // Initiate resumable upload
   const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink', {
     method: 'POST',
     headers: {
@@ -119,9 +117,6 @@ function addHistory(item) {
   localStorage.setItem(LS_KEY_HISTORY, JSON.stringify(h))
   return h
 }
-
-// Honeycomb SVG pattern (faint net)
-const HONEYCOMB_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49'%3E%3Cpath d='M14 0l14 8.66v16.17L14 33.5 0 24.83V8.66z' fill='none' stroke='%23000' stroke-opacity='.06' stroke-width='.5'/%3E%3Cpath d='M14 16.5l14 8.66v16.17L14 50 0 41.33V25.16z' fill='none' stroke='%23000' stroke-opacity='.06' stroke-width='.5'/%3E%3C/svg%3E")`
 
 // ── Widget ─────────────────────────────────────────────────────────────────
 
@@ -199,13 +194,32 @@ export default function SaveLink() {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
     >
-      {/* Honeycomb drop zone — fills available space */}
+      {/* URL input — always at top, compact */}
+      <form onSubmit={handleSubmit} className="shrink-0 flex gap-1.5 px-2.5 pt-2 pb-1">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Paste a URL…"
+          className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none min-w-0"
+          style={{ background: 'rgba(var(--color-border) / 0.2)', color: 'var(--theme-text-1)', border: '0.5px solid var(--theme-card-border)' }}
+          disabled={state === 'saving'}
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || state === 'saving'}
+          className="shrink-0 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80 disabled:opacity-40"
+          style={{ background: `rgba(var(--color-accent) / 0.15)`, color: `rgb(var(--color-accent))` }}
+        >
+          Save
+        </button>
+      </form>
+
+      {/* Drop zone — fills remaining space, always visible */}
       <div
-        className="flex-1 mx-2.5 mt-2 rounded-xl flex flex-col items-center justify-center gap-2 px-3 transition-all min-h-0 relative overflow-hidden"
+        className="flex-1 mx-2.5 mb-1.5 rounded-xl flex flex-col items-center justify-center gap-1.5 px-3 transition-all min-h-0 relative overflow-hidden"
         style={{
           border: `1.5px dashed ${dragging ? `rgb(var(--color-accent))` : 'var(--theme-card-border)'}`,
-          background: dragging ? `rgba(var(--color-accent) / 0.06)` : 'transparent',
-          backgroundImage: dragging ? 'none' : HONEYCOMB_SVG,
+          background: dragging ? `rgba(var(--color-accent) / 0.06)` : 'rgba(var(--color-border) / 0.04)',
         }}
       >
         {state === 'saving' ? (
@@ -225,70 +239,48 @@ export default function SaveLink() {
           </div>
         ) : (
           <>
+            <Upload size={16} style={{ color: 'var(--theme-text-3)', opacity: 0.5 }} />
             <p className="text-[11px] text-center" style={{ color: 'var(--theme-text-3)' }}>
-              Drop a URL or file here
+              Drop files or URLs here
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-lg hover:opacity-70 transition-opacity"
-              style={{ background: 'rgba(var(--color-border) / 0.2)', color: 'var(--theme-text-2)', border: '0.5px solid var(--theme-card-border)' }}
+              style={{ background: 'rgba(var(--color-border) / 0.25)', color: 'var(--theme-text-2)', border: '0.5px solid var(--theme-card-border)' }}
             >
-              <Upload size={11} /> Browse
+              Browse
             </button>
             <input ref={fileInputRef} type="file" className="hidden" onChange={e => e.target.files?.[0] && saveFile(e.target.files[0])} />
           </>
         )}
       </div>
 
-      {/* URL input + Drive link row */}
-      <div className="shrink-0 px-2.5 py-2 flex flex-col gap-1.5">
-        <form onSubmit={handleSubmit} className="flex gap-1.5">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Paste a URL…"
-            className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none min-w-0"
-            style={{ background: 'rgba(var(--color-border) / 0.2)', color: 'var(--theme-text-1)', border: '0.5px solid var(--theme-card-border)' }}
-            disabled={state === 'saving'}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || state === 'saving'}
-            className="shrink-0 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80 disabled:opacity-40"
-            style={{ background: `rgba(var(--color-accent) / 0.15)`, color: `rgb(var(--color-accent))` }}
+      {/* Footer — history + Drive link, compact row */}
+      <div className="shrink-0 px-2.5 pb-2 flex items-center gap-2 min-h-0">
+        {history.length > 0 ? (
+          <a
+            href={history[0].url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 flex-1 min-w-0 hover:opacity-70 transition-opacity"
           >
-            Save
-          </button>
-        </form>
-
-        {/* Recent items — compact, only if there are any */}
-        {history.length > 0 && (
-          <div className="flex flex-col">
-            {history.slice(0, 3).map((item) => (
-              <a
-                key={item.id}
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 py-1 hover:opacity-70 transition-opacity"
-              >
-                <span style={{ color: 'var(--theme-text-3)', flexShrink: 0 }}>
-                  {item.type === 'url' ? <Link size={10} /> : <File size={10} />}
-                </span>
-                <span className="text-[11px] flex-1 truncate" style={{ color: 'var(--theme-text-2)' }}>{item.name}</span>
-              </a>
-            ))}
-          </div>
+            <span style={{ color: 'var(--theme-text-3)', flexShrink: 0 }}>
+              {history[0].type === 'url' ? <Link size={10} /> : <File size={10} />}
+            </span>
+            <span className="text-[11px] truncate" style={{ color: 'var(--theme-text-2)' }}>{history[0].name}</span>
+          </a>
+        ) : (
+          <span className="text-[10px] flex-1" style={{ color: 'var(--theme-text-3)' }}>
+            Saves to Google Drive
+          </span>
         )}
-
-        {/* Open Drive — inline link */}
         <button
           onClick={openFolder}
-          className="flex items-center gap-1 text-[10px] hover:opacity-60 transition-opacity self-start"
+          className="flex items-center gap-1 text-[10px] hover:opacity-60 transition-opacity shrink-0"
           style={{ color: 'var(--theme-text-3)' }}
         >
           <FolderOpen size={10} />
-          Open Drive folder
+          <span className="hidden sm:inline">Drive</span>
         </button>
       </div>
     </div>

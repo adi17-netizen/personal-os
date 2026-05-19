@@ -41,10 +41,44 @@ export default function Toolbar({ activeOverlay, setActiveOverlay, settingsOpen,
       {/* Left — brand */}
       <div className="flex items-center gap-2 shrink-0">
         <div
-          className="w-[20px] h-[20px] rounded-[6px] flex items-center justify-center"
-          style={{ background: `rgb(var(--color-accent))` }}
+          className="pos-logo"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 7,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            background: `linear-gradient(145deg, rgba(var(--color-accent) / 0.95), rgba(var(--color-accent) / 0.7))`,
+            boxShadow: `
+              0 1px 3px rgba(0,0,0,0.2),
+              0 0.5px 0 rgba(255,255,255,0.25) inset,
+              0 -0.5px 1px rgba(0,0,0,0.15) inset
+            `,
+            border: '0.5px solid rgba(255,255,255,0.18)',
+          }}
         >
-          <span style={{ color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>P</span>
+          {/* Glass highlight */}
+          <div style={{
+            position: 'absolute',
+            top: 1,
+            left: 2,
+            right: 2,
+            height: '45%',
+            borderRadius: '5px 5px 50% 50%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 100%)',
+            pointerEvents: 'none',
+          }} />
+          <span style={{
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: 1,
+            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            position: 'relative',
+            zIndex: 1,
+          }}>P</span>
         </div>
         <span
           className="text-[15px] font-semibold"
