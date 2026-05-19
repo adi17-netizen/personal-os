@@ -154,25 +154,42 @@ const TIERS = {
 
 function useSizeTier(ref) {
   const [tier, setTier] = useState('lg')
-  const timerRef = useRef(null)
+  const prevWidth = useRef(0)
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    // Observe the grid cell parent — its size is stable (set by react-grid-layout),
+    // unlike the container whose content shifts when tier changes.
+    const target = el?.parentElement ?? el
+    if (!target) return
     const ro = new ResizeObserver(([entry]) => {
-      clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => {
-        const w = entry.contentRect.width
-        const next = w >= 380 ? 'lg' : w >= 280 ? 'md' : 'sm'
-        setTier(t => t === next ? t : next)
-      }, 80)
+      const w = entry.contentRect.width
+      // Skip if width hasn't changed by at least 10px (prevents oscillation)
+      if (Math.abs(w - prevWidth.current) < 10) return
+      prevWidth.current = w
+      const next = w >= 380 ? 'lg' : w >= 280 ? 'md' : 'sm'
+      setTier(t => t === next ? t : next)
     })
-    ro.observe(el)
-    return () => { ro.disconnect(); clearTimeout(timerRef.current) }
+    ro.observe(target)
+    return () => ro.disconnect()
   }, [ref])
   return tier
 }
 
 /* ─── Widget ──────────────────────────────────────────────────────────────── */
+
+/* Seconds-only ticker — isolated so the parent doesn't re-render every second */
+function Seconds({ fontSize }) {
+  const [ss, setSs] = useState(() => format(new Date(), 'ss'))
+  useEffect(() => {
+    const id = setInterval(() => setSs(format(new Date(), 'ss')), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <span className="font-mono font-normal ml-0.5" style={{ fontSize, color: 'var(--theme-text-3)' }}>
+      :{ss}
+    </span>
+  )
+}
 
 export default function ClockWeather() {
   const [now, setNow] = useState(new Date())
@@ -181,9 +198,15 @@ export default function ClockWeather() {
   const s = TIERS[tier]
   const weather = useOpenMeteoWeather()
 
+  // Update HH:mm + date once per minute, synced to the minute boundary
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
+    let intervalId = null
+    const msToNextMin = (60 - new Date().getSeconds()) * 1000
+    const timeout = setTimeout(() => {
+      setNow(new Date())
+      intervalId = setInterval(() => setNow(new Date()), 60_000)
+    }, msToNextMin)
+    return () => { clearTimeout(timeout); if (intervalId) clearInterval(intervalId) }
   }, [])
 
   const isDay = now.getHours() >= 6 && now.getHours() < 18
@@ -199,9 +222,7 @@ export default function ClockWeather() {
       <div className="flex flex-col justify-center min-w-0">
         <div className="font-mono leading-none" style={{ color: 'var(--theme-text-1)' }}>
           <span className="font-semibold tracking-tight" style={{ fontSize: s.clock }}>{format(now, 'HH:mm')}</span>
-          <span className="font-normal ml-0.5" style={{ fontSize: s.sec, color: 'var(--theme-text-3)' }}>
-            :{format(now, 'ss')}
-          </span>
+          <Seconds fontSize={s.sec} />
         </div>
         <div className="mt-1 truncate" style={{ fontSize: s.date, color: 'var(--theme-text-2)' }}>
           {format(now, 'EEEE, MMM d')}

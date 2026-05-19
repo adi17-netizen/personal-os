@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Newspaper, Settings, X, Plus, ExternalLink } from 'lucide-react'
+import { Newspaper, Settings, X, Plus, ExternalLink, RefreshCw } from 'lucide-react'
 import { formatDistanceToNow, isValid } from 'date-fns'
 import { useNewsFeed } from '../../../hooks/useNewsFeed'
 import SkeletonList from '../../layout/SkeletonList'
@@ -29,7 +29,14 @@ function parseArticle(article) {
 }
 
 export default function NewsFeed() {
-  const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS } = useNewsFeed()
+  const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS, lastRefreshed } = useNewsFeed()
+  const [spinning, setSpinning] = useState(false)
+
+  const handleRefresh = () => {
+    setSpinning(true)
+    retry()
+    setTimeout(() => setSpinning(false), 800)
+  }
   const [editingTopics, setEditingTopics] = useState(false)
   const [newTopic, setNewTopic] = useState('')
 
@@ -53,13 +60,29 @@ export default function NewsFeed() {
             <span key={t} className="text-[10px] px-2 py-0.5 rounded-full truncate" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
           ))}
         </div>
-        <button
-          onClick={() => setEditingTopics(p => !p)}
-          className="hover:opacity-60 transition-opacity ml-2 shrink-0"
-          style={{ color: 'var(--theme-text-2)' }}
-        >
-          <Settings size={13} />
-        </button>
+        <div className="flex items-center gap-1.5 ml-2 shrink-0">
+          <button
+            onClick={handleRefresh}
+            className="hover:opacity-60 transition-opacity"
+            style={{ color: 'var(--theme-text-2)' }}
+            title="Refresh news"
+          >
+            <RefreshCw
+              size={12}
+              style={{
+                transition: 'transform 0.8s ease',
+                transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
+              }}
+            />
+          </button>
+          <button
+            onClick={() => setEditingTopics(p => !p)}
+            className="hover:opacity-60 transition-opacity"
+            style={{ color: 'var(--theme-text-2)' }}
+          >
+            <Settings size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Topic editor */}

@@ -36,6 +36,7 @@ export function useNewsFeed() {
   })
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState(null)
+  const [lastRefreshed, setLastRefreshed] = useState(null)
   const intervalRef = useRef(null)
 
   const load = useCallback(async (currentTopics) => {
@@ -50,7 +51,7 @@ export function useNewsFeed() {
         .slice(0, 30)
 
       if (all.length === 0) { setStatus('empty') }
-      else { setArticles(all); setStatus('success') }
+      else { setArticles(all); setStatus('success'); setLastRefreshed(new Date()) }
     } catch (e) {
       setError(e.message); setStatus('error')
     }
@@ -85,5 +86,5 @@ export function useNewsFeed() {
     load(capped)
   }, [user, load])
 
-  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS }
+  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed }
 }

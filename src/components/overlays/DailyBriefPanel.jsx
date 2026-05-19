@@ -28,7 +28,7 @@ export default function DailyBriefPanel({ onClose }) {
   }, [onClose])
 
   const todayEvents = (events || []).slice(0, 5)
-  const pendingTasks = (tasks || []).filter(t => !t.completed).slice(0, 3)
+  const topTasks = (tasks || []).slice(0, 5)
 
   return (
     <div
@@ -106,16 +106,27 @@ export default function DailyBriefPanel({ onClose }) {
           {/* Tasks */}
           <Section title="Top tasks">
             {taskStatus === 'loading' && <LoadingLine />}
-            {(taskStatus === 'empty' || pendingTasks.length === 0) && <EmptyLine text="No pending tasks." />}
-            {taskStatus === 'success' && pendingTasks.map(t => (
-              <div key={t.id} className="flex items-center gap-2">
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: `rgb(var(--color-accent))` }}
-                />
-                <span className="text-sm truncate" style={{ color: 'var(--theme-text-1)' }}>{t.title}</span>
-              </div>
-            ))}
+            {(taskStatus === 'empty' || topTasks.length === 0) && <EmptyLine text="No tasks." />}
+            {taskStatus === 'success' && topTasks.map(t => {
+              const done = t.status === 'completed'
+              return (
+                <div key={t.id} className="flex items-center gap-2">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: done ? 'var(--theme-text-3)' : `rgb(var(--color-accent))` }}
+                  />
+                  <span
+                    className="text-sm truncate"
+                    style={{
+                      color: done ? 'var(--theme-text-3)' : 'var(--theme-text-1)',
+                      textDecoration: done ? 'line-through' : 'none',
+                    }}
+                  >
+                    {t.title}
+                  </span>
+                </div>
+              )
+            })}
           </Section>
 
           {/* News */}
