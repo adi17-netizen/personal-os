@@ -21,20 +21,34 @@ function setCachedArticles(articles) {
   try { localStorage.setItem(LS_ARTICLES_KEY, JSON.stringify(articles)) } catch {}
 }
 
-async function fetchTopic(topic) {
+async function fetchViaOwnApi(topic) {
+  const res = await fetch(`/api/rss?topic=${encodeURIComponent(topic)}`, { signal: AbortSignal.timeout(10000) })
+  if (!res.ok) throw new Error(`api ${res.status}`)
+  const data = await res.json()
+  if (data.error) throw new Error(data.error)
+  return (data.items || []).map(item => ({
+    title: item.title ?? '', link: item.link ?? '',
+    pubDate: item.pubDate ?? '', source: item.source ?? '', topic,
+  }))
+}
+
+async function fetchViaRss2json(topic) {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-IN&gl=IN&ceid=IN:en`
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`
   const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
-  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`)
+  if (!res.ok) throw new Error(`rss2json ${res.status}`)
   const data = await res.json()
-  if (data.status !== 'ok') throw new Error(data.message || 'RSS error')
+  if (data.status !== 'ok') throw new Error(data.message || 'rss2json error')
   return data.items.map(item => ({
-    title: item.title ?? '',
-    link: item.link ?? '',
-    pubDate: item.pubDate ?? '',
-    source: item.author ?? '',
-    topic,
+    title: item.title ?? '', link: item.link ?? '',
+    pubDate: item.pubDate ?? '', source: item.author ?? '', topic,
   }))
+}
+
+async function fetchTopic(topic) {
+  // Try our Cloudflare Function first (fresh data), fall back to rss2json (cached but reliable)
+  try { return await fetchViaOwnApi(topic) }
+  catch { return await fetchViaRss2json(topic) }
 }
 
 // Merge new articles into existing, deduplicate by link, sort newest first, cap at MAX

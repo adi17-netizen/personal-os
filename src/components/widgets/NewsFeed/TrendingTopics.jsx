@@ -20,45 +20,16 @@ function setCachedTrends(data) {
   } catch {}
 }
 
-function parseTrendsXml(xmlStr) {
-  const xml = new DOMParser().parseFromString(xmlStr, 'text/xml')
-  const items = [...xml.querySelectorAll('item')]
-  if (!items.length) throw new Error('no items')
-  return items.slice(0, 20).map(item => {
-    const trafficEl = item.getElementsByTagNameNS('*', 'approx_traffic')[0]
-    const traffic = trafficEl?.textContent || ''
-    return {
-      title: item.querySelector('title')?.textContent || '',
-      traffic: traffic ? `${traffic} searches` : '',
-      link: item.querySelector('link')?.textContent || '',
-    }
-  })
-}
-
 async function fetchTrends() {
-  const rssUrl = 'https://trends.google.com/trending/rss?geo=IN'
-
-  // Try allorigins (fresh), fall back to rss2json
-  try {
-    const proxyUrl = `https://allorigins.win/get?disableCache=true&url=${encodeURIComponent(rssUrl)}`
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) throw new Error(`proxy ${res.status}`)
-    const json = await res.json()
-    if (!json.contents) throw new Error('empty')
-    return parseTrendsXml(json.contents)
-  } catch {
-    // rss2json fallback
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`
-    const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) throw new Error(`rss2json ${res.status}`)
-    const data = await res.json()
-    if (data.status !== 'ok') throw new Error('rss2json error')
-    return data.items.map(item => ({
-      title: item.title || '',
-      traffic: '',
-      link: item.link || '',
-    }))
-  }
+  const res = await fetch('/api/trends', { signal: AbortSignal.timeout(10000) })
+  if (!res.ok) throw new Error(`Trends fetch failed: ${res.status}`)
+  const data = await res.json()
+  if (data.error) throw new Error(data.error)
+  return (data.items || []).map(item => ({
+    title: item.title || '',
+    traffic: item.traffic || '',
+    link: item.link || '',
+  }))
 }
 
 export default function TrendingTopics() {
