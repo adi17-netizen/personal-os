@@ -12,7 +12,6 @@ import { MD_LAYOUT }  from '../constants/defaultLayout'
 import ReconnectBanner    from '../components/layout/ReconnectBanner'
 import WidgetShell        from '../components/layout/WidgetShell'
 import Toolbar            from '../components/toolbar/Toolbar'
-import ToolbarMascot      from '../components/ambient/ToolbarMascot'
 
 import SearchOverlay       from '../components/overlays/SearchOverlay'
 import AskAIOverlay        from '../components/overlays/AskAIOverlay'
