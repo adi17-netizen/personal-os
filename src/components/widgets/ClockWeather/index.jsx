@@ -102,15 +102,20 @@ const TIERS = {
 
 function useSizeTier(ref) {
   const [tier, setTier] = useState('lg')
+  const timerRef = useRef(null)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width
-      setTier(w >= 380 ? 'lg' : w >= 280 ? 'md' : 'sm')
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        const w = entry.contentRect.width
+        const next = w >= 380 ? 'lg' : w >= 280 ? 'md' : 'sm'
+        setTier(t => t === next ? t : next)  // skip re-render if tier unchanged
+      }, 80)
     })
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => { ro.disconnect(); clearTimeout(timerRef.current) }
   }, [ref])
   return tier
 }
