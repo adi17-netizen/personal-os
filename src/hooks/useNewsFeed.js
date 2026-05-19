@@ -9,7 +9,7 @@ const LS_ARTICLES_KEY = 'personal-os-articles'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
 const MAX_TOPICS = 7
 const MAX_ARTICLES = 40
-const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
+const REFRESH_INTERVAL = 30 * 60 * 1000 // 30 minutes
 
 function getCachedArticles() {
   try {

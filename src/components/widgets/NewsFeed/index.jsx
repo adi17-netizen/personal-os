@@ -146,7 +146,7 @@ export default function NewsFeed() {
             </button>
           </div>
           <p className="text-[10px] mt-1" style={{ color: 'var(--theme-text-3)' }}>
-            {topics.length}/{MAX_TOPICS} topics · Refreshes every 15 min
+            {topics.length}/{MAX_TOPICS} topics · Refreshes every 30 min
           </p>
 
         </div>
