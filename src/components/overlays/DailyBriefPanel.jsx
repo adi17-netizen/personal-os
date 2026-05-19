@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { format } from 'date-fns'
-import { X, Video } from 'lucide-react'
-import { useCalendar, getRemainingEvents } from '../../hooks/useCalendar'
+import { X, Video, ExternalLink } from 'lucide-react'
+import { useCalendar } from '../../hooks/useCalendar'
 import { useTasks } from '../../hooks/useTasks'
-import { useWeather } from '../../hooks/useWeather'
 import { useNewsFeed } from '../../hooks/useNewsFeed'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -13,19 +12,11 @@ function getGreeting(name) {
   return name ? `${salutation}, ${name}` : salutation
 }
 
-function WeatherLine({ data, status }) {
-  if (status !== 'success' || !data?.current) return null
-  return (
-    <span>{data.current.temp}°C — feels {data.current.feelsLike}°C in {data.current.name}</span>
-  )
-}
-
 export default function DailyBriefPanel({ onClose }) {
   const { user } = useAuth()
   const { data: events, status: calStatus } = useCalendar()
   const { tasks, status: taskStatus }       = useTasks()
-  const { data: weather, status: wxStatus } = useWeather()
-  const { articles, status: newsStatus }    = useNewsFeed()
+  const { topics }                          = useNewsFeed()
   const panelRef = useRef(null)
 
   const firstName = user?.displayName?.split(' ')[0] ?? ''
@@ -38,7 +29,6 @@ export default function DailyBriefPanel({ onClose }) {
 
   const todayEvents = (events || []).slice(0, 5)
   const pendingTasks = (tasks || []).filter(t => !t.completed).slice(0, 3)
-  const headlines = (articles || []).slice(0, 3)
 
   return (
     <div
@@ -68,8 +58,7 @@ export default function DailyBriefPanel({ onClose }) {
               {getGreeting(firstName)}
             </h2>
             <p className="text-sm mt-0.5" style={{ color: 'var(--theme-text-3)' }}>
-              {format(new Date(), 'EEEE, MMMM d')} ·{' '}
-              <WeatherLine data={weather} status={wxStatus} />
+              {format(new Date(), 'EEEE, MMMM d')}
             </p>
           </div>
           <button
@@ -130,21 +119,22 @@ export default function DailyBriefPanel({ onClose }) {
           </Section>
 
           {/* News */}
-          <Section title="In the news">
-            {newsStatus === 'loading' && <LoadingLine />}
-            {newsStatus === 'success' && headlines.map((a, i) => (
-              <a
-                key={i}
-                href={a.link}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm hover:opacity-70 transition-opacity leading-snug line-clamp-1"
-                style={{ color: 'var(--theme-text-2)' }}
-                onClick={e => e.stopPropagation()}
-              >
-                {a.title}
-              </a>
-            ))}
+          <Section title="Your news topics">
+            <div className="flex flex-wrap gap-2">
+              {topics.map(topic => (
+                <a
+                  key={topic}
+                  href={`https://news.google.com/search?q=${encodeURIComponent(topic)}&hl=en-US&gl=US&ceid=US:en`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-sm px-2.5 py-1 rounded-lg hover:opacity-70 transition-opacity"
+                  style={{ background: 'rgba(var(--color-border) / 0.3)', color: 'var(--theme-text-1)' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {topic} <ExternalLink size={10} style={{ color: 'var(--theme-text-3)' }} />
+                </a>
+              ))}
+            </div>
           </Section>
         </div>
 

@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { Newspaper, Settings, X, Plus } from 'lucide-react'
+import { ExternalLink, Settings, X, Plus } from 'lucide-react'
 import { useNewsFeed } from '../../../hooks/useNewsFeed'
-import SkeletonList from '../../layout/SkeletonList'
-import ErrorState from '../../layout/ErrorState'
-import EmptyState from '../../layout/EmptyState'
-import NewsItem from './NewsItem'
+
+function topicToGoogleNewsUrl(topic) {
+  return `https://news.google.com/search?q=${encodeURIComponent(topic)}&hl=en-US&gl=US&ceid=US:en`
+}
 
 export default function NewsFeed() {
-  const { articles, topics, status, error, retry, updateTopics } = useNewsFeed()
+  const { topics, loaded, updateTopics } = useNewsFeed()
   const [editingTopics, setEditingTopics] = useState(false)
   const [newTopic, setNewTopic] = useState('')
 
@@ -24,6 +24,7 @@ export default function NewsFeed() {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Topic chips + settings */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 shrink-0">
         <div className="flex gap-1 flex-wrap">
           {topics.map(t => (
@@ -39,6 +40,7 @@ export default function NewsFeed() {
         </button>
       </div>
 
+      {/* Topic editor */}
       {editingTopics && (
         <div className="px-4 py-2 border-b border-border/40 bg-background/40 shrink-0">
           <div className="flex flex-wrap gap-1 mb-2">
@@ -56,22 +58,43 @@ export default function NewsFeed() {
               onKeyDown={e => e.key === 'Enter' && addTopic()}
               placeholder="Add topic…"
               className="flex-1 rounded px-2 py-1 text-xs outline-none"
-              style={{ background: 'rgba(var(--color-border) / 0.3)', color: 'var(--theme-text-1)', '--tw-placeholder-color': 'var(--theme-text-3)' }}
+              style={{ background: 'rgba(var(--color-border) / 0.3)', color: 'var(--theme-text-1)' }}
             />
-            <button onClick={addTopic} className="text-accent hover:text-white transition-colors">
+            <button onClick={addTopic} className="hover:opacity-60 transition-opacity" style={{ color: `rgb(var(--color-accent))` }}>
               <Plus size={14} />
             </button>
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-auto min-h-0 px-4">
-        {status === 'loading' && <SkeletonList rows={5} />}
-        {status === 'error' && <ErrorState message={error} onRetry={retry} />}
-        {status === 'empty' && <EmptyState icon={Newspaper} message="No news found for these topics." />}
-        {status === 'success' && articles.map((article, i) => (
-          <NewsItem key={`${article.link}-${i}`} article={article} />
+      {/* Topic links */}
+      <div className="flex-1 overflow-auto min-h-0 px-4 py-2">
+        {topics.map(topic => (
+          <a
+            key={topic}
+            href={topicToGoogleNewsUrl(topic)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between py-2.5 border-b last:border-0 hover:opacity-70 transition-opacity"
+            style={{ borderColor: 'rgba(var(--color-border) / 0.3)' }}
+          >
+            <span className="text-sm font-medium" style={{ color: 'var(--theme-text-1)' }}>
+              {topic} News
+            </span>
+            <ExternalLink size={12} style={{ color: 'var(--theme-text-3)', flexShrink: 0 }} />
+          </a>
         ))}
+
+        {/* Combined news search */}
+        <a
+          href={`https://news.google.com/search?q=${encodeURIComponent(topics.join(' OR '))}&hl=en-US&gl=US&ceid=US:en`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center gap-1.5 mt-3 py-2 rounded-lg text-xs font-medium hover:opacity-80 transition-opacity"
+          style={{ background: `rgba(var(--color-accent) / 0.1)`, color: `rgb(var(--color-accent))` }}
+        >
+          Open All News <ExternalLink size={11} />
+        </a>
       </div>
     </div>
   )
