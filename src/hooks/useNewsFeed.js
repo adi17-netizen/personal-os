@@ -7,23 +7,20 @@ const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const LS_KEY = 'personal-os-topics'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
 
-function parseRSS(xmlString) {
-  const parser = new DOMParser()
-  const xml = parser.parseFromString(xmlString, 'text/xml')
-  return Array.from(xml.querySelectorAll('item')).map(item => ({
-    title: item.querySelector('title')?.textContent ?? '',
-    link: item.querySelector('link')?.textContent ?? '',
-    pubDate: item.querySelector('pubDate')?.textContent ?? '',
-    source: item.querySelector('source')?.textContent ?? '',
-  }))
-}
 
 async function fetchTopic(topic) {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-US&gl=US&ceid=US:en`
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
-  const { contents } = await res.json()
-  return parseRSS(contents)
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`
+  const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`)
+  const data = await res.json()
+  if (data.status !== 'ok') throw new Error(data.message || 'RSS error')
+  return data.items.map(item => ({
+    title: item.title ?? '',
+    link: item.link ?? '',
+    pubDate: item.pubDate ?? '',
+    source: item.author ?? '',
+  }))
 }
 
 export function useNewsFeed() {
