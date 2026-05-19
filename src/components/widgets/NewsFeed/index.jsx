@@ -5,7 +5,6 @@ import { useNewsFeed } from '../../../hooks/useNewsFeed'
 import SkeletonList from '../../layout/SkeletonList'
 import ErrorState from '../../layout/ErrorState'
 import EmptyState from '../../layout/EmptyState'
-import TrendingTopics from './TrendingTopics'
 
 function timeAgo(dateStr) {
   try {
@@ -32,7 +31,6 @@ function parseArticle(article) {
 export default function NewsFeed() {
   const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS } = useNewsFeed()
   const [spinning, setSpinning] = useState(false)
-  const [tab, setTab] = useState('news') // 'news' | 'trending'
   const [editingTopics, setEditingTopics] = useState(false)
   const [newTopic, setNewTopic] = useState('')
 
@@ -55,47 +53,24 @@ export default function NewsFeed() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Tab switcher + settings */}
+      {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-1 min-w-0">
-          <button
-            onClick={() => setTab('news')}
-            className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity"
-            style={{
-              color: tab === 'news' ? `rgb(var(--color-accent))` : 'var(--theme-text-3)',
-              background: tab === 'news' ? `rgb(var(--color-accent) / 0.1)` : 'transparent',
-            }}
-          >
-            News
-          </button>
-          <button
-            onClick={() => setTab('trending')}
-            className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity"
-            style={{
-              color: tab === 'trending' ? `rgb(var(--color-accent))` : 'var(--theme-text-3)',
-              background: tab === 'trending' ? `rgb(var(--color-accent) / 0.1)` : 'transparent',
-            }}
-          >
-            Trending
-          </button>
-        </div>
+        <div className="flex items-center gap-1 min-w-0" />
         <div className="flex items-center gap-1.5 ml-2 shrink-0">
-          {tab === 'news' && (
-            <button
-              onClick={handleRefresh}
-              className="hover:opacity-60 transition-opacity"
-              style={{ color: 'var(--theme-text-2)' }}
-              title="Refresh news"
-            >
-              <RefreshCw
-                size={12}
-                style={{
-                  transition: 'transform 0.8s ease',
-                  transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
-                }}
-              />
-            </button>
-          )}
+          <button
+            onClick={handleRefresh}
+            className="hover:opacity-60 transition-opacity"
+            style={{ color: 'var(--theme-text-2)' }}
+            title="Refresh news"
+          >
+            <RefreshCw
+              size={12}
+              style={{
+                transition: 'transform 0.8s ease',
+                transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
+              }}
+            />
+          </button>
           <button
             onClick={() => setEditingTopics(p => !p)}
             className="hover:opacity-60 transition-opacity"
@@ -106,8 +81,8 @@ export default function NewsFeed() {
         </div>
       </div>
 
-      {/* Topic chips bar (only for News tab) */}
-      {tab === 'news' && topics.length > 0 && (
+      {/* Topic chips bar */}
+      {topics.length > 0 && (
         <div className="flex gap-1 flex-wrap px-3 py-1 border-b border-border/40 shrink-0">
           {topics.map(t => (
             <span key={t} className="text-[10px] px-2 py-0.5 rounded-full truncate" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
@@ -148,19 +123,10 @@ export default function NewsFeed() {
           <p className="text-[10px] mt-1" style={{ color: 'var(--theme-text-3)' }}>
             {topics.length}/{MAX_TOPICS} topics · Refreshes every 30 min
           </p>
-
-        </div>
-      )}
-
-      {/* Trending */}
-      {tab === 'trending' && (
-        <div className="flex-1 overflow-auto min-h-0">
-          <TrendingTopics />
         </div>
       )}
 
       {/* Article list */}
-      {tab === 'news' && (
       <div className="flex-1 overflow-auto min-h-0 px-3">
         {status === 'loading' && <div className="py-2"><SkeletonList rows={5} /></div>}
         {status === 'error' && <ErrorState message={error} onRetry={retry} />}
@@ -176,7 +142,6 @@ export default function NewsFeed() {
               className="flex flex-col gap-0.5 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
               style={{ borderColor: 'rgba(var(--color-border) / 0.25)' }}
             >
-              {/* Source + time */}
               <div className="flex items-center gap-1.5">
                 {source && (
                   <span className="text-[10px] font-semibold truncate" style={{ color: 'var(--theme-text-2)' }}>
@@ -189,7 +154,6 @@ export default function NewsFeed() {
                   </span>
                 )}
               </div>
-              {/* Headline */}
               <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--theme-text-1)' }}>
                 {headline}
               </p>
@@ -197,11 +161,10 @@ export default function NewsFeed() {
           )
         })}
       </div>
-      )}
 
-      {/* Footer — open in source */}
-      <div className="shrink-0 px-3 py-1.5" style={{ borderTop: '0.5px solid var(--theme-card-border)' }}>
-        {tab === 'news' && status === 'success' && (
+      {/* Footer */}
+      {status === 'success' && (
+        <div className="shrink-0 px-3 py-1.5" style={{ borderTop: '0.5px solid var(--theme-card-border)' }}>
           <a
             href={`https://news.google.com/search?q=${encodeURIComponent(topics.join(' OR '))}&hl=en-IN&gl=IN&ceid=IN:en`}
             target="_blank"
@@ -211,19 +174,8 @@ export default function NewsFeed() {
           >
             Open in Google News <ExternalLink size={10} />
           </a>
-        )}
-        {tab === 'trending' && (
-          <a
-            href="https://trends.google.com/trending?geo=IN"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center gap-1 text-[11px] font-medium py-1 rounded-md hover:opacity-70 transition-opacity"
-            style={{ color: `rgb(var(--color-accent))` }}
-          >
-            Open Google Trends <ExternalLink size={10} />
-          </a>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
