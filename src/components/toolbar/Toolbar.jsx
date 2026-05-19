@@ -4,6 +4,7 @@ import { useFocus } from '../../contexts/FocusContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import SettingsPanel from '../ui/SettingsPanel'
+import ToolbarMascot from '../ambient/ToolbarMascot'
 
 function formatTime(secs) {
   const m = String(Math.floor(secs / 60)).padStart(2, '0')
@@ -125,6 +126,7 @@ export default function Toolbar({ activeOverlay, setActiveOverlay, settingsOpen,
         </button>
       </div>
 
+      <ToolbarMascot />
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </header>
   )

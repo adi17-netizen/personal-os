@@ -12,7 +12,7 @@ import { MD_LAYOUT }  from '../constants/defaultLayout'
 import ReconnectBanner    from '../components/layout/ReconnectBanner'
 import WidgetShell        from '../components/layout/WidgetShell'
 import Toolbar            from '../components/toolbar/Toolbar'
-import FlyingBird         from '../components/ambient/FlyingBird'
+import ToolbarMascot      from '../components/ambient/ToolbarMascot'
 
 import SearchOverlay       from '../components/overlays/SearchOverlay'
 import AskAIOverlay        from '../components/overlays/AskAIOverlay'
@@ -172,7 +172,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <FlyingBird />
 
       {theme === 'beach'    && <BeachWaves />}
       {theme === 'mountain' && <MountainSilhouette />}

@@ -301,3 +301,39 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); background: rgba(239,68,68,0.22); }
   50%      { box-shadow: 0 0 0 12px rgba(239,68,68,0); background: rgba(239,68,68,0.35); }
 }
+
+/* Cloud Bot mascot animations */
+.cloud-bot-walk {
+  animation: cloud-bot-bob 0.4s ease-in-out infinite;
+}
+.cloud-bot-jump {
+  animation: cloud-bot-hop 0.5s ease-out;
+}
+.cloud-bot-blink g {
+  animation: cloud-bot-blink-anim 0.3s ease-in-out;
+}
+.cloud-bot-legs {
+  animation: cloud-bot-step 0.4s ease-in-out infinite;
+}
+
+@keyframes cloud-bot-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.5px); }
+}
+
+@keyframes cloud-bot-hop {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes cloud-bot-blink-anim {
+  0%, 100% { transform: scaleY(1); }
+  40%, 60% { transform: scaleY(0.1); }
+}
+
+@keyframes cloud-bot-step {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(8deg); }
+  75%      { transform: rotate(-8deg); }
+}
