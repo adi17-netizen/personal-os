@@ -5,7 +5,9 @@ import { useAuth } from '../contexts/AuthContext'
 
 const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const LS_KEY = 'personal-os-topics'
+const LS_X_KEY = 'personal-os-xhandle'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
+const DEFAULT_X_HANDLE = 'elonmusk'
 const MAX_TOPICS = 7
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
 
@@ -34,6 +36,7 @@ export function useNewsFeed() {
     }
     return DEFAULT_TOPICS
   })
+  const [xHandle, setXHandle] = useState(() => localStorage.getItem(LS_X_KEY) || DEFAULT_X_HANDLE)
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState(null)
   const [lastRefreshed, setLastRefreshed] = useState(null)
@@ -57,15 +60,17 @@ export function useNewsFeed() {
     }
   }, [])
 
-  // Load topics from Firestore then fetch articles
+  // Load topics + X handle from Firestore then fetch articles
   useEffect(() => {
     if (MOCK) { load(topics); return }
     if (!user) return
     const prefRef = doc(db, 'userPrefs', user.uid)
     getDoc(prefRef).then(snap => {
-      const saved = snap.data()?.newsTopics
-      const t = saved?.length ? saved : DEFAULT_TOPICS
-      setTopics(t); load(t)
+      const data = snap.data() || {}
+      const t = data.newsTopics?.length ? data.newsTopics : DEFAULT_TOPICS
+      setTopics(t)
+      if (data.xHandle) setXHandle(data.xHandle)
+      load(t)
     }).catch(() => load(DEFAULT_TOPICS))
   }, [user, load])
 
@@ -86,5 +91,15 @@ export function useNewsFeed() {
     load(capped)
   }, [user, load])
 
-  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed }
+  const updateXHandle = useCallback(async (newHandle) => {
+    const clean = newHandle.replace(/^@/, '').trim()
+    if (!clean) return
+    setXHandle(clean)
+    localStorage.setItem(LS_X_KEY, clean)
+    if (!MOCK && user) {
+      await setDoc(doc(db, 'userPrefs', user.uid), { xHandle: clean }, { merge: true })
+    }
+  }, [user])
+
+  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed, xHandle, updateXHandle }
 }
