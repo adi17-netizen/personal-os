@@ -8,7 +8,8 @@ const MOCK = import.meta.env.VITE_MOCK_MODE === 'true'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1'
 
 async function fetchMessages(mode) {
-  const q = mode === 'unread' ? '&q=is:unread' : ''
+  // category:primary excludes Promotions, Social, Updates, Forums
+  const q = mode === 'unread' ? '&q=category:primary is:unread' : '&q=category:primary'
   const listUrl = `${GMAIL_API}/users/me/messages?maxResults=10&labelIds=INBOX${q}`
   const list = await fetchGoogle(listUrl)
   const ids = (list.messages || []).map(m => m.id)
