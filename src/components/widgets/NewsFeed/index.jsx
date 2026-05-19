@@ -1,19 +1,26 @@
 import { useState } from 'react'
-import { ExternalLink, Settings, X, Plus } from 'lucide-react'
+import { Newspaper, Settings, X, Plus, ExternalLink } from 'lucide-react'
+import { formatDistanceToNow, isValid } from 'date-fns'
 import { useNewsFeed } from '../../../hooks/useNewsFeed'
+import SkeletonList from '../../layout/SkeletonList'
+import ErrorState from '../../layout/ErrorState'
+import EmptyState from '../../layout/EmptyState'
 
-function topicToGoogleNewsUrl(topic) {
-  return `https://news.google.com/search?q=${encodeURIComponent(topic)}&hl=en-US&gl=US&ceid=US:en`
+function timeAgo(dateStr) {
+  try {
+    const d = new Date(dateStr)
+    return isValid(d) ? formatDistanceToNow(d, { addSuffix: true }) : ''
+  } catch { return '' }
 }
 
 export default function NewsFeed() {
-  const { topics, loaded, updateTopics } = useNewsFeed()
+  const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS } = useNewsFeed()
   const [editingTopics, setEditingTopics] = useState(false)
   const [newTopic, setNewTopic] = useState('')
 
   const addTopic = () => {
     const t = newTopic.trim()
-    if (!t || topics.includes(t)) return
+    if (!t || topics.includes(t) || topics.length >= MAX_TOPICS) return
     updateTopics([...topics, t])
     setNewTopic('')
   }
@@ -25,10 +32,10 @@ export default function NewsFeed() {
   return (
     <div className="h-full flex flex-col">
       {/* Topic chips + settings */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 shrink-0">
-        <div className="flex gap-1 flex-wrap">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 shrink-0">
+        <div className="flex gap-1 flex-wrap min-w-0">
           {topics.map(t => (
-            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
+            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full truncate" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
           ))}
         </div>
         <button
@@ -42,7 +49,7 @@ export default function NewsFeed() {
 
       {/* Topic editor */}
       {editingTopics && (
-        <div className="px-4 py-2 border-b border-border/40 bg-background/40 shrink-0">
+        <div className="px-3 py-2 border-b border-border/40 shrink-0" style={{ background: 'rgba(var(--color-border) / 0.1)' }}>
           <div className="flex flex-wrap gap-1 mb-2">
             {topics.map(t => (
               <span key={t} className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>
@@ -56,46 +63,75 @@ export default function NewsFeed() {
               value={newTopic}
               onChange={e => setNewTopic(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addTopic()}
-              placeholder="Add topic…"
-              className="flex-1 rounded px-2 py-1 text-xs outline-none"
+              placeholder={topics.length >= MAX_TOPICS ? `Max ${MAX_TOPICS} topics` : 'Add topic…'}
+              disabled={topics.length >= MAX_TOPICS}
+              className="flex-1 rounded px-2 py-1 text-xs outline-none disabled:opacity-40"
               style={{ background: 'rgba(var(--color-border) / 0.3)', color: 'var(--theme-text-1)' }}
             />
-            <button onClick={addTopic} className="hover:opacity-60 transition-opacity" style={{ color: `rgb(var(--color-accent))` }}>
+            <button
+              onClick={addTopic}
+              disabled={topics.length >= MAX_TOPICS}
+              className="hover:opacity-60 transition-opacity disabled:opacity-30"
+              style={{ color: `rgb(var(--color-accent))` }}
+            >
               <Plus size={14} />
             </button>
           </div>
+          <p className="text-[10px] mt-1" style={{ color: 'var(--theme-text-3)' }}>
+            {topics.length}/{MAX_TOPICS} topics · Refreshes every 15 min
+          </p>
         </div>
       )}
 
-      {/* Topic links */}
-      <div className="flex-1 overflow-auto min-h-0 px-4 py-2">
-        {topics.map(topic => (
+      {/* Article list */}
+      <div className="flex-1 overflow-auto min-h-0 px-3">
+        {status === 'loading' && <div className="py-2"><SkeletonList rows={5} /></div>}
+        {status === 'error' && <ErrorState message={error} onRetry={retry} />}
+        {status === 'empty' && <EmptyState icon={Newspaper} message="No news found for these topics." />}
+        {status === 'success' && articles.map((article, i) => (
           <a
-            key={topic}
-            href={topicToGoogleNewsUrl(topic)}
+            key={`${article.link}-${i}`}
+            href={article.link}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between py-2.5 border-b last:border-0 hover:opacity-70 transition-opacity"
-            style={{ borderColor: 'rgba(var(--color-border) / 0.3)' }}
+            className="flex flex-col gap-0.5 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
+            style={{ borderColor: 'rgba(var(--color-border) / 0.25)' }}
           >
-            <span className="text-sm font-medium" style={{ color: 'var(--theme-text-1)' }}>
-              {topic} News
-            </span>
-            <ExternalLink size={12} style={{ color: 'var(--theme-text-3)', flexShrink: 0 }} />
+            {/* Source + time */}
+            <div className="flex items-center gap-1.5">
+              {article.source && (
+                <span className="text-[10px] font-medium truncate" style={{ color: 'var(--theme-text-2)' }}>
+                  {article.source}
+                </span>
+              )}
+              {article.pubDate && (
+                <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-text-3)' }}>
+                  {timeAgo(article.pubDate)}
+                </span>
+              )}
+            </div>
+            {/* Headline */}
+            <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--theme-text-1)' }}>
+              {article.title}
+            </p>
           </a>
         ))}
-
-        {/* Combined news search */}
-        <a
-          href={`https://news.google.com/search?q=${encodeURIComponent(topics.join(' OR '))}&hl=en-US&gl=US&ceid=US:en`}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-center gap-1.5 mt-3 py-2 rounded-lg text-xs font-medium hover:opacity-80 transition-opacity"
-          style={{ background: `rgba(var(--color-accent) / 0.1)`, color: `rgb(var(--color-accent))` }}
-        >
-          Open All News <ExternalLink size={11} />
-        </a>
       </div>
+
+      {/* Footer — open all in Google News */}
+      {status === 'success' && (
+        <div className="shrink-0 px-3 py-1.5" style={{ borderTop: '0.5px solid var(--theme-card-border)' }}>
+          <a
+            href={`https://news.google.com/search?q=${encodeURIComponent(topics.join(' OR '))}&hl=en-IN&gl=IN&ceid=IN:en`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-1 text-[11px] font-medium py-1 rounded-md hover:opacity-70 transition-opacity"
+            style={{ color: `rgb(var(--color-accent))` }}
+          >
+            Open in Google News <ExternalLink size={10} />
+          </a>
+        </div>
+      )}
     </div>
   )
 }
