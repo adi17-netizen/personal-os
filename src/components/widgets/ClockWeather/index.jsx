@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { RefreshCw } from 'lucide-react'
 import { useWeather, weatherApiCodeToIcon } from '../../../hooks/useWeather'
@@ -93,9 +93,34 @@ function WeatherIcon({ code, size = 36 }) {
 
 /* ─── Widget ──────────────────────────────────────────────────────────────── */
 
+// Size tiers — everything scales together
+const TIERS = {
+  lg: { clock: 30, sec: 18, date: 12, temp: 24, label: 12, sub: 11, icon: 40, gap: 16, pad: 16, igap: 10 },
+  md: { clock: 24, sec: 14, date: 11, temp: 20, label: 11, sub: 10, icon: 32, gap: 12, pad: 12, igap: 8 },
+  sm: { clock: 20, sec: 12, date: 10, temp: 16, label: 10, sub: 9,  icon: 24, gap: 8,  pad: 8,  igap: 6 },
+}
+
+function useSizeTier(ref) {
+  const [tier, setTier] = useState('lg')
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width
+      setTier(w >= 380 ? 'lg' : w >= 280 ? 'md' : 'sm')
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref])
+  return tier
+}
+
 export default function ClockWeather() {
   const [now, setNow] = useState(new Date())
   const { data, status, error, retry } = useWeather()
+  const containerRef = useRef(null)
+  const tier = useSizeTier(containerRef)
+  const s = TIERS[tier]
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
@@ -107,17 +132,21 @@ export default function ClockWeather() {
   const iconCode = current ? weatherApiCodeToIcon(current.iconCode) : null
 
   return (
-    <div className="h-full flex items-center justify-center gap-5 px-6 py-2 overflow-hidden">
+    <div
+      ref={containerRef}
+      className="h-full flex items-center justify-center py-2 overflow-hidden"
+      style={{ gap: s.gap, paddingLeft: s.pad, paddingRight: s.pad }}
+    >
 
       {/* Left — Clock */}
-      <div className="flex flex-col justify-center shrink-0">
+      <div className="flex flex-col justify-center min-w-0">
         <div className="font-mono leading-none" style={{ color: 'var(--theme-text-1)' }}>
-          <span className="text-3xl font-semibold tracking-tight">{format(now, 'HH:mm')}</span>
-          <span className="text-lg font-normal ml-0.5" style={{ color: 'var(--theme-text-3)' }}>
+          <span className="font-semibold tracking-tight" style={{ fontSize: s.clock }}>{format(now, 'HH:mm')}</span>
+          <span className="font-normal ml-0.5" style={{ fontSize: s.sec, color: 'var(--theme-text-3)' }}>
             :{format(now, 'ss')}
           </span>
         </div>
-        <div className="text-xs mt-1" style={{ color: 'var(--theme-text-2)' }}>
+        <div className="mt-1 truncate" style={{ fontSize: s.date, color: 'var(--theme-text-2)' }}>
           {format(now, 'EEEE, MMM d')}
         </div>
       </div>
@@ -127,8 +156,8 @@ export default function ClockWeather() {
         <div className="self-stretch w-px shrink-0 my-3" style={{ background: 'var(--theme-card-border)' }} />
       )}
 
-      {/* Right — Weather: icon + 4-line text */}
-      <div className="shrink-0">
+      {/* Right — Weather: icon + text */}
+      <div className="min-w-0">
         {status === 'loading' && (
           <div className="flex flex-col gap-1.5">
             <div className="shimmer rounded h-3 w-16" />
@@ -144,27 +173,27 @@ export default function ClockWeather() {
           </button>
         )}
         {status === 'success' && (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center min-w-0" style={{ gap: s.igap }}>
             {/* Weather icon */}
             <div className="shrink-0" style={{ color: 'var(--theme-text-2)' }}>
-              <WeatherIcon code={iconCode} size={40} />
+              <WeatherIcon code={iconCode} size={s.icon} />
             </div>
 
             {/* Text stack */}
-            <div className="flex flex-col">
-              <span className="text-xs font-medium" style={{ color: 'var(--theme-text-2)' }}>
+            <div className="flex flex-col min-w-0">
+              <span className="font-medium truncate" style={{ fontSize: s.label, color: 'var(--theme-text-2)' }}>
                 {current?.name}
               </span>
-              <span className="text-2xl font-semibold leading-tight" style={{ color: 'var(--theme-text-1)' }}>
+              <span className="font-semibold leading-tight" style={{ fontSize: s.temp, color: 'var(--theme-text-1)' }}>
                 {current?.temp}°
               </span>
               {forecast?.today?.description && (
-                <span className="text-[11px] leading-snug" style={{ color: 'var(--theme-text-3)' }}>
+                <span className="leading-snug truncate" style={{ fontSize: s.sub, color: 'var(--theme-text-3)' }}>
                   {forecast.today.description}
                 </span>
               )}
               {forecast?.tomorrow && (
-                <span className="text-[11px] leading-snug" style={{ color: 'var(--theme-text-3)' }}>
+                <span className="leading-snug" style={{ fontSize: s.sub, color: 'var(--theme-text-3)' }}>
                   Tomorrow: {forecast.tomorrow.high}°
                 </span>
               )}
