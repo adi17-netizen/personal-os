@@ -5,8 +5,8 @@
 export const DEFAULT_LAYOUT = [
   // Left column — x:0, w:3
   { i: 'clock-weather', x: 0, y: 0, w: 3, h: 2, minW: 1, minH: 1 },
-  { i: 'quick-links',   x: 0, y: 2, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'save-link',     x: 0, y: 5, w: 3, h: 2, minW: 1, minH: 1 },
+  { i: 'quick-links',   x: 0, y: 2, w: 3, h: 2, minW: 1, minH: 1 },
+  { i: 'save-link',     x: 0, y: 4, w: 3, h: 3, minW: 1, minH: 1 },
   { i: 'notes',         x: 0, y: 7, w: 3, h: 3, minW: 1, minH: 1 },
 
   // Center column — x:3, w:5
