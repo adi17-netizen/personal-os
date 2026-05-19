@@ -3,19 +3,19 @@ const EXPIRY_KEY = 'goog_token_expiry'
 
 export const tokenStore = {
   set(token, expiresInSeconds = 3600) {
-    sessionStorage.setItem(TOKEN_KEY, token)
-    sessionStorage.setItem(EXPIRY_KEY, String(Date.now() + expiresInSeconds * 1000))
+    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.setItem(EXPIRY_KEY, String(Date.now() + expiresInSeconds * 1000))
   },
 
   get() {
-    const expiry = Number(sessionStorage.getItem(EXPIRY_KEY))
+    const expiry = Number(localStorage.getItem(EXPIRY_KEY))
     if (!expiry || Date.now() > expiry - 60_000) return null
-    return sessionStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(TOKEN_KEY)
   },
 
   clear() {
-    sessionStorage.removeItem(TOKEN_KEY)
-    sessionStorage.removeItem(EXPIRY_KEY)
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(EXPIRY_KEY)
   },
 
   isValid() {

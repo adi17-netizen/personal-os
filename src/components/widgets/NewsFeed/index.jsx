@@ -13,6 +13,21 @@ function timeAgo(dateStr) {
   } catch { return '' }
 }
 
+// Google News RSS embeds source in title: "Headline - Source Name"
+function parseArticle(article) {
+  const title = article.title || ''
+  const lastDash = title.lastIndexOf(' - ')
+  if (lastDash > 0) {
+    return {
+      headline: title.slice(0, lastDash),
+      source: title.slice(lastDash + 3),
+      time: timeAgo(article.pubDate),
+      link: article.link,
+    }
+  }
+  return { headline: title, source: article.source || '', time: timeAgo(article.pubDate), link: article.link }
+}
+
 export default function NewsFeed() {
   const { articles, topics, status, error, retry, updateTopics, MAX_TOPICS } = useNewsFeed()
   const [editingTopics, setEditingTopics] = useState(false)
@@ -88,34 +103,37 @@ export default function NewsFeed() {
         {status === 'loading' && <div className="py-2"><SkeletonList rows={5} /></div>}
         {status === 'error' && <ErrorState message={error} onRetry={retry} />}
         {status === 'empty' && <EmptyState icon={Newspaper} message="No news found for these topics." />}
-        {status === 'success' && articles.map((article, i) => (
-          <a
-            key={`${article.link}-${i}`}
-            href={article.link}
-            target="_blank"
-            rel="noreferrer"
-            className="flex flex-col gap-0.5 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
-            style={{ borderColor: 'rgba(var(--color-border) / 0.25)' }}
-          >
-            {/* Source + time */}
-            <div className="flex items-center gap-1.5">
-              {article.source && (
-                <span className="text-[10px] font-medium truncate" style={{ color: 'var(--theme-text-2)' }}>
-                  {article.source}
-                </span>
-              )}
-              {article.pubDate && (
-                <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-text-3)' }}>
-                  {timeAgo(article.pubDate)}
-                </span>
-              )}
-            </div>
-            {/* Headline */}
-            <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--theme-text-1)' }}>
-              {article.title}
-            </p>
-          </a>
-        ))}
+        {status === 'success' && articles.map((article, i) => {
+          const { headline, source, time, link } = parseArticle(article)
+          return (
+            <a
+              key={`${link}-${i}`}
+              href={link}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col gap-0.5 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
+              style={{ borderColor: 'rgba(var(--color-border) / 0.25)' }}
+            >
+              {/* Source + time */}
+              <div className="flex items-center gap-1.5">
+                {source && (
+                  <span className="text-[10px] font-semibold truncate" style={{ color: 'var(--theme-text-2)' }}>
+                    {source}
+                  </span>
+                )}
+                {time && (
+                  <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-text-3)' }}>
+                    · {time}
+                  </span>
+                )}
+              </div>
+              {/* Headline */}
+              <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--theme-text-1)' }}>
+                {headline}
+              </p>
+            </a>
+          )
+        })}
       </div>
 
       {/* Footer — open all in Google News */}

@@ -121,20 +121,26 @@ export default function DailyBriefPanel({ onClose }) {
           {/* News */}
           <Section title="In the news">
             {newsStatus === 'loading' && <LoadingLine />}
-            {newsStatus === 'success' && (articles || []).slice(0, 4).map((a, i) => (
-              <a
-                key={i}
-                href={a.link}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm hover:opacity-70 transition-opacity leading-snug line-clamp-1"
-                style={{ color: 'var(--theme-text-2)' }}
-                onClick={e => e.stopPropagation()}
-              >
-                {a.source && <span className="text-[11px] font-medium" style={{ color: 'var(--theme-text-3)' }}>{a.source} · </span>}
-                {a.title}
-              </a>
-            ))}
+            {newsStatus === 'success' && (articles || []).slice(0, 4).map((a, i) => {
+              const title = a.title || ''
+              const lastDash = title.lastIndexOf(' - ')
+              const headline = lastDash > 0 ? title.slice(0, lastDash) : title
+              const source = lastDash > 0 ? title.slice(lastDash + 3) : (a.source || '')
+              return (
+                <a
+                  key={i}
+                  href={a.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--theme-text-2)' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {source && <span className="text-[11px] font-medium" style={{ color: 'var(--theme-text-3)' }}>{source}</span>}
+                  <span className="text-sm leading-snug line-clamp-1">{headline}</span>
+                </a>
+              )
+            })}
           </Section>
         </div>
 
