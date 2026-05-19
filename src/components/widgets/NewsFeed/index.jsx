@@ -53,9 +53,13 @@ export default function NewsFeed() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-1 min-w-0" />
+      {/* Topic chips + actions */}
+      <div className="flex items-center px-3 py-1.5 border-b border-border/40 shrink-0">
+        <div className="flex gap-1 flex-wrap flex-1 min-w-0">
+          {topics.map(t => (
+            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full truncate" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
+          ))}
+        </div>
         <div className="flex items-center gap-1.5 ml-2 shrink-0">
           <button
             onClick={handleRefresh}
@@ -80,15 +84,6 @@ export default function NewsFeed() {
           </button>
         </div>
       </div>
-
-      {/* Topic chips bar */}
-      {topics.length > 0 && (
-        <div className="flex gap-1 flex-wrap px-3 py-1 border-b border-border/40 shrink-0">
-          {topics.map(t => (
-            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full truncate" style={{ color: 'var(--theme-text-1)', background: 'rgba(var(--color-border) / 0.4)' }}>{t}</span>
-          ))}
-        </div>
-      )}
 
       {/* Topic editor */}
       {editingTopics && (
