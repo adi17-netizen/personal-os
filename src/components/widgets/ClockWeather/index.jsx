@@ -119,37 +119,42 @@ function WeatherIcon({ type, size }) {
   }
 }
 
-/* ─── Open-Meteo fetch (no API key needed) ───────────────────────────────── */
-
-const MUMBAI_LAT = 19.076
-const MUMBAI_LON = 72.8777
+/* ─── Weather fetch via wttr.in (free, no API key, accurate for India) ──── */
 
 const WEATHER_REFRESH_MS = 15 * 60 * 1000 // 15 minutes
 
-function useOpenMeteoWeather() {
+function descToIcon(desc, isDay) {
+  const d = desc.toLowerCase()
+  if (d.includes('thunder'))                       return 'storm'
+  if (d.includes('snow') || d.includes('blizzard'))return 'snow'
+  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return 'mist'
+  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return 'rain'
+  if (d.includes('overcast'))                      return 'cloud'
+  if (d.includes('cloudy') || d.includes('cloud')) return 'partly-cloudy'
+  return isDay ? 'sun' : 'moon'
+}
+
+function useWeather() {
   const [weather, setWeather] = useState(null)
 
   useEffect(() => {
     const fetchWeather = () => {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${MUMBAI_LAT}&longitude=${MUMBAI_LON}&current=temperature_2m,weather_code,is_day&timezone=Asia/Kolkata`
-      fetch(url, { signal: AbortSignal.timeout(6000) })
+      fetch('https://wttr.in/Mumbai?format=j1', { signal: AbortSignal.timeout(6000) })
         .then(r => r.json())
         .then(data => {
-          const c = data.current
+          const c = data?.current_condition?.[0]
           if (!c) return
-          const isDay = c.is_day === 1
-          const { icon, desc } = wmoToWeather(c.weather_code, isDay)
-          setWeather({ temp: Math.round(c.temperature_2m), desc, icon })
+          const temp = parseInt(c.temp_C, 10)
+          const desc = c.weatherDesc?.[0]?.value || 'Clear'
+          const hour = new Date().getHours()
+          const isDay = hour >= 6 && hour < 18
+          setWeather({ temp, desc, icon: descToIcon(desc, isDay) })
         })
         .catch(() => {})
     }
 
     fetchWeather()
-
-    // Refresh every 15 minutes
     const intervalId = setInterval(fetchWeather, WEATHER_REFRESH_MS)
-
-    // Also refresh when tab regains focus (user returns after being away)
     const onFocus = () => fetchWeather()
     window.addEventListener('focus', onFocus)
 
@@ -214,7 +219,7 @@ export default function ClockWeather() {
   const containerRef = useRef(null)
   const tier = useSizeTier(containerRef)
   const s = TIERS[tier]
-  const weather = useOpenMeteoWeather()
+  const weather = useWeather()
 
   // Update HH:mm + date once per minute, synced to the minute boundary
   useEffect(() => {

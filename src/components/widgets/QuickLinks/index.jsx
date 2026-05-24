@@ -84,7 +84,7 @@ export default function QuickLinks() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-auto min-h-0 p-3">
+      <div className="flex-1 min-h-0 p-3 overflow-hidden">
         {links.length === 0 && !showAdd && (
           <EmptyState icon={Link} message="Add your go-to links below." />
         )}

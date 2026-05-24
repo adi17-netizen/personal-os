@@ -45,10 +45,26 @@ async function fetchViaRss2json(topic) {
   }))
 }
 
+async function fetchViaBingRss(topic) {
+  const rssUrl = `https://www.bing.com/news/search?q=${encodeURIComponent(topic)}&format=rss&count=10`
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`
+  const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`bing-rss2json ${res.status}`)
+  const data = await res.json()
+  if (data.status !== 'ok') throw new Error(data.message || 'bing rss error')
+  return data.items.map(item => ({
+    title: item.title ?? '', link: item.link ?? '',
+    pubDate: item.pubDate ?? '', source: item.author ?? '', topic,
+  }))
+}
+
 async function fetchTopic(topic) {
-  // Try our Cloudflare Function first (fresh data), fall back to rss2json (cached but reliable)
+  // Try our Cloudflare Function first (fresh), then rss2json Google, then Bing RSS
   try { return await fetchViaOwnApi(topic) }
-  catch { return await fetchViaRss2json(topic) }
+  catch {
+    try { return await fetchViaRss2json(topic) }
+    catch { return await fetchViaBingRss(topic) }
+  }
 }
 
 // Merge new articles into existing, deduplicate by link, sort newest first, cap at MAX
