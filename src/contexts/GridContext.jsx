@@ -11,7 +11,7 @@ const LS_KEY = 'personal-os-layout'
 // Bump this whenever the default layout changes significantly.
 // Any saved layout with a different version is automatically discarded
 // and replaced with DEFAULT_LAYOUT — fixes corrupted/stale positions.
-const LAYOUT_VERSION = 10
+const LAYOUT_VERSION = 11
 
 function isValidLayout(layout) {
   // Must be an array of objects with i, x, y, w, h

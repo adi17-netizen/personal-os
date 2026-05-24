@@ -174,7 +174,7 @@ export default function Dashboard() {
 
       {theme === 'beach'    && <BeachWaves />}
       {theme === 'mountain' && <MountainSilhouette />}
-      {theme === 'apple'    && <AppleGlow />}
+      {theme === 'general'  && <GeneralGlow />}
 
       <Toolbar
         activeOverlay={activeOverlay}
@@ -273,7 +273,7 @@ function MountainSilhouette() {
   )
 }
 
-function AppleGlow() {
+function GeneralGlow() {
   return (
     <div style={{
       position: 'fixed', bottom: '-20%', left: '50%', transform: 'translateX(-50%)',

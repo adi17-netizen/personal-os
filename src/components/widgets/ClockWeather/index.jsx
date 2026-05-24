@@ -124,21 +124,39 @@ function WeatherIcon({ type, size }) {
 const MUMBAI_LAT = 19.076
 const MUMBAI_LON = 72.8777
 
+const WEATHER_REFRESH_MS = 15 * 60 * 1000 // 15 minutes
+
 function useOpenMeteoWeather() {
   const [weather, setWeather] = useState(null)
 
   useEffect(() => {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${MUMBAI_LAT}&longitude=${MUMBAI_LON}&current=temperature_2m,weather_code,is_day&timezone=Asia/Kolkata`
-    fetch(url, { signal: AbortSignal.timeout(6000) })
-      .then(r => r.json())
-      .then(data => {
-        const c = data.current
-        if (!c) return
-        const isDay = c.is_day === 1
-        const { icon, desc } = wmoToWeather(c.weather_code, isDay)
-        setWeather({ temp: Math.round(c.temperature_2m), desc, icon })
-      })
-      .catch(() => {}) // silent fail — widget still shows city + link
+    const fetchWeather = () => {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${MUMBAI_LAT}&longitude=${MUMBAI_LON}&current=temperature_2m,weather_code,is_day&timezone=Asia/Kolkata`
+      fetch(url, { signal: AbortSignal.timeout(6000) })
+        .then(r => r.json())
+        .then(data => {
+          const c = data.current
+          if (!c) return
+          const isDay = c.is_day === 1
+          const { icon, desc } = wmoToWeather(c.weather_code, isDay)
+          setWeather({ temp: Math.round(c.temperature_2m), desc, icon })
+        })
+        .catch(() => {})
+    }
+
+    fetchWeather()
+
+    // Refresh every 15 minutes
+    const intervalId = setInterval(fetchWeather, WEATHER_REFRESH_MS)
+
+    // Also refresh when tab regains focus (user returns after being away)
+    const onFocus = () => fetchWeather()
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   return weather

@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 export const THEMES = [
   { id: 'beach',    label: 'Beach',    emoji: '🏖️', colors: ['#E8F0FE','#F5F0E8','#F0E4D0'] },
   { id: 'mountain', label: 'Mountain', emoji: '⛰️', colors: ['#050508','#0A0A0E','#0A84FF'] },
-  { id: 'apple',    label: 'Apple',    emoji: '🍎', colors: ['#F5F5F7','#E8E8ED','#007AFF'] },
+  { id: 'general',  label: 'General',  emoji: '✨', colors: ['#F5F5F7','#E8E8ED','#007AFF'] },
 ]
 
 export const TEXT_SIZES = [
@@ -16,8 +16,10 @@ const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('personal-os-theme')
-    return ['beach', 'mountain', 'apple'].includes(saved) ? saved : 'beach'
+    let saved = localStorage.getItem('personal-os-theme')
+    // Migrate old "apple" theme to "general"
+    if (saved === 'apple') saved = 'general'
+    return ['beach', 'mountain', 'general'].includes(saved) ? saved : 'beach'
   })
 
   const [textSize, setTextSize] = useState(() => {

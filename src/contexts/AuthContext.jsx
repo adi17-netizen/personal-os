@@ -27,10 +27,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (MOCK) return
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser && !tokenStore.isValid()) {
-        setNeedsReconnect(true)
+        // Auto-reconnect: silently re-trigger popup to get a fresh token.
+        // Since the user already consented, the popup is near-instant.
+        try {
+          const result = await signInWithPopup(auth, googleProvider)
+          const credential = GoogleAuthProvider.credentialFromResult(result)
+          if (credential?.accessToken) {
+            tokenStore.set(credential.accessToken)
+            setNeedsReconnect(false)
+          } else {
+            setNeedsReconnect(true)
+          }
+        } catch {
+          // Popup blocked or failed — fall back to showing the banner
+          setNeedsReconnect(true)
+        }
       } else if (!firebaseUser) {
         setNeedsReconnect(false)
         tokenStore.clear()

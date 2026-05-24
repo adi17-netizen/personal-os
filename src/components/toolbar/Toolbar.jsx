@@ -86,6 +86,21 @@ export default function Toolbar({ activeOverlay, setActiveOverlay, settingsOpen,
         >
           Personal OS
         </span>
+        <span
+          style={{
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            color: 'rgb(var(--color-accent))',
+            background: 'rgba(var(--color-accent) / 0.1)',
+            border: '0.5px solid rgba(var(--color-accent) / 0.3)',
+            borderRadius: 6,
+            padding: '1.5px 6px',
+            lineHeight: '14px',
+          }}
+        >
+          BETA
+        </span>
       </div>
 
       {/* Center — tool buttons */}
