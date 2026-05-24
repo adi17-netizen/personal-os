@@ -9,7 +9,7 @@ const LS_ARTICLES_KEY = 'personal-os-articles'
 const DEFAULT_TOPICS = ['Technology', 'AI', 'Science']
 const MAX_TOPICS = 7
 const MAX_ARTICLES = 40
-const REFRESH_INTERVAL = 30 * 60 * 1000 // 30 minutes
+const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
 
 function getCachedArticles() {
   try {
@@ -164,5 +164,13 @@ export function useNewsFeed() {
     load(capped)
   }, [user, load])
 
-  return { articles, topics, status, error, retry: () => load(topics), updateTopics, MAX_TOPICS, lastRefreshed }
+  const forceRefresh = useCallback(() => {
+    // Clear stale cache so fresh articles aren't merged with old ones
+    setCachedArticles([])
+    setArticles([])
+    setStatus('loading')
+    load(topics)
+  }, [topics, load])
+
+  return { articles, topics, status, error, retry: forceRefresh, updateTopics, MAX_TOPICS, lastRefreshed }
 }
